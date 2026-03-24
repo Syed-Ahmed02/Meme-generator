@@ -1,18 +1,60 @@
-import { Button } from "@/components/ui/button"
+import { Suspense } from "react"
+import { Laugh } from "lucide-react"
+import { MemeGallery } from "@/components/gallery/meme-gallery"
+import { MemeGallerySkeleton } from "@/components/gallery/meme-gallery-skeleton"
+import type { MemeTemplate } from "@/lib/types"
+import { FALLBACK_MEMES } from "@/lib/memes-fallback"
 
-export default function Page() {
+async function getMemes(): Promise<MemeTemplate[]> {
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/memes`,
+      { next: { revalidate: 3600 } }
+    )
+    if (!res.ok) throw new Error()
+    const data = await res.json()
+    return data.memes
+  } catch {
+    return FALLBACK_MEMES
+  }
+}
+
+export default async function Page() {
+  const memes = await getMemes()
+
   return (
-    <div className="flex min-h-svh p-6">
-      <div className="flex max-w-md min-w-0 flex-col gap-4 text-sm leading-loose">
-        <div>
-          <h1 className="font-medium">Project ready!</h1>
-          <p>You may now add components and start building.</p>
-          <p>We&apos;ve already added the button component for you.</p>
-          <Button className="mt-2">Button</Button>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 rounded-lg bg-primary/10">
+              <Laugh className="h-5 w-5 text-primary" />
+            </div>
+            <span className="font-bold text-lg tracking-tight">MemeForge</span>
+          </div>
+          <p className="text-xs text-muted-foreground font-mono hidden sm:block">
+            Press <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border font-mono">d</kbd> to toggle dark mode
+          </p>
         </div>
-        <div className="font-mono text-xs text-muted-foreground">
-          (Press <kbd>d</kbd> to toggle dark mode)
+      </header>
+
+      {/* Hero */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-8">
+        <div className="text-center mb-10">
+          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight mb-3">
+            Create memes that{" "}
+            <span className="text-primary">actually</span> slap
+          </h1>
+          <p className="text-muted-foreground text-lg max-w-xl mx-auto">
+            Pick a template, edit with a Figma-like canvas, or let AI write the
+            perfect caption for you.
+          </p>
         </div>
+
+        <Suspense fallback={<MemeGallerySkeleton />}>
+          <MemeGallery initialMemes={memes} />
+        </Suspense>
       </div>
     </div>
   )
