@@ -1,12 +1,7 @@
-import dynamic from "next/dynamic"
 import { notFound } from "next/navigation"
 import { FALLBACK_MEMES } from "@/lib/memes-fallback"
+import { EditorShellClient } from "@/components/editor/editor-shell-client"
 import type { MemeTemplate } from "@/lib/types"
-
-const EditorShell = dynamic(
-  () => import("@/components/editor/editor-shell").then((m) => m.EditorShell),
-  { ssr: false }
-)
 
 async function getTemplate(id: string): Promise<MemeTemplate | null> {
   try {
@@ -32,5 +27,5 @@ export default async function EditorPage({
 
   if (!template) notFound()
 
-  return <EditorShell template={template} />
+  return <EditorShellClient template={template} />
 }
