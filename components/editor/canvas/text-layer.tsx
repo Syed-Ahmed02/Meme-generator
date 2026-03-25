@@ -46,8 +46,8 @@ export function TextLayerComponent({ layer, isSelected, onSelect, stageScale }: 
         onDragStart={() => pushHistory()}
         onDragEnd={(e) => {
           updateLayer(layer.id, {
-            x: e.target.x(),
-            y: e.target.y(),
+            x: e.target.x() / stageScale,
+            y: e.target.y() / stageScale,
           })
         }}
         onTransformStart={() => pushHistory()}
@@ -57,9 +57,9 @@ export function TextLayerComponent({ layer, isSelected, onSelect, stageScale }: 
           node.scaleX(1)
           node.scaleY(1)
           updateLayer(layer.id, {
-            x: node.x(),
-            y: node.y(),
-            width: Math.max(50, node.width() * scaleX),
+            x: node.x() / stageScale,
+            y: node.y() / stageScale,
+            width: Math.max(50, (node.width() * scaleX) / stageScale),
           })
         }}
         shadowColor="black"
