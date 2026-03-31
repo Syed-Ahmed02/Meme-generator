@@ -1,17 +1,38 @@
 "use client"
 
 import { useChat } from "@ai-sdk/react"
-import { useEffect, useRef } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { DefaultChatTransport, type UIMessage } from "ai"
 import { useEditorStore } from "./use-editor-store"
+
+function textFromUiMessage(msg: UIMessage): string {
+  return msg.parts
+    .filter((p): p is { type: "text"; text: string } => p.type === "text")
+    .map((p) => p.text)
+    .join("")
+}
+
+export function uiMessageDisplayText(msg: UIMessage): string {
+  return textFromUiMessage(msg)
+}
 
 export function useAiChat() {
   const { layers, updateLayer, template } = useEditorStore()
   const lastAssistantId = useRef<string | null>(null)
+  const [input, setInput] = useState("")
+
+  const transport = useMemo(
+    () => new DefaultChatTransport({ api: "/api/ai/generate" }),
+    []
+  )
 
   const chat = useChat({
-    api: "/api/ai/generate",
+    transport,
     onError: (err) => console.error("AI chat error:", err),
   })
+
+  const isLoading =
+    chat.status === "submitted" || chat.status === "streaming"
 
   // Watch for completed assistant messages and apply to canvas
   useEffect(() => {
@@ -21,13 +42,13 @@ export function useAiChat() {
     const last = messages[messages.length - 1]
     if (last.role !== "assistant") return
     if (last.id === lastAssistantId.current) return
-    if (chat.isLoading) return // wait until streaming is done
+    if (isLoading) return
 
     lastAssistantId.current = last.id
 
     try {
-      // Find JSON in the response (model sometimes wraps in markdown)
-      const jsonMatch = last.content.match(/\{[\s\S]*"topText"[\s\S]*\}/)
+      const text = textFromUiMessage(last)
+      const jsonMatch = text.match(/\{[\s\S]*"topText"[\s\S]*\}/)
       if (!jsonMatch) return
 
       const parsed = JSON.parse(jsonMatch[0]) as {
@@ -44,23 +65,22 @@ export function useAiChat() {
     } catch {
       // JSON parse failed, skip silently
     }
-  }, [chat.messages, chat.isLoading, layers, updateLayer])
+  }, [chat.messages, isLoading, layers, updateLayer])
 
-  function sendMessage(content: string) {
+  async function sendMessage(content: string) {
     const systemContext = template
       ? `The user is editing a "${template.name}" meme template.`
       : ""
-    chat.append({
-      role: "user",
-      content: systemContext ? `${systemContext}\n\n${content}` : content,
-    })
+    const text = systemContext ? `${systemContext}\n\n${content}` : content
+    await chat.sendMessage({ text })
+    setInput("")
   }
 
   return {
     messages: chat.messages,
-    input: chat.input,
-    setInput: chat.setInput,
-    isLoading: chat.isLoading,
+    input,
+    setInput,
+    isLoading,
     sendMessage,
   }
 }
