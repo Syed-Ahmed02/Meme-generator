@@ -5,7 +5,7 @@ import { Bot, Sparkles } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ChatMessage } from "./chat-message"
 import { ChatInput } from "./chat-input"
-import { useAiChat } from "@/hooks/use-ai-chat"
+import { uiMessageDisplayText, useAiChat } from "@/hooks/use-ai-chat"
 
 export function AiChatPanel() {
   const { messages, input, setInput, isLoading, sendMessage } = useAiChat()
@@ -49,7 +49,7 @@ export function AiChatPanel() {
             <ChatMessage
               key={msg.id}
               role={msg.role as "user" | "assistant"}
-              content={msg.content}
+              content={uiMessageDisplayText(msg)}
               isStreaming={isLoading && msg === messages[messages.length - 1] && msg.role === "assistant"}
             />
           ))
@@ -60,7 +60,8 @@ export function AiChatPanel() {
         value={input}
         onChange={setInput}
         onSubmit={() => {
-          if (input.trim()) sendMessage(input)
+          const text = (input ?? "").trim()
+          if (text) sendMessage(text)
         }}
         disabled={isLoading}
       />

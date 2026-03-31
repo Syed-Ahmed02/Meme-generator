@@ -1,19 +1,22 @@
 "use client"
 
-import { useRef, KeyboardEvent } from "react"
+import { KeyboardEvent } from "react"
 import { Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface ChatInputProps {
-  value: string
+  value?: string
   onChange: (v: string) => void
   onSubmit: () => void
   disabled?: boolean
 }
 
-export function ChatInput({ value, onChange, onSubmit, disabled }: ChatInputProps) {
-  const ref = useRef<HTMLTextAreaElement>(null)
-
+export function ChatInput({
+  value = "",
+  onChange,
+  onSubmit,
+  disabled,
+}: ChatInputProps) {
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
@@ -21,24 +24,15 @@ export function ChatInput({ value, onChange, onSubmit, disabled }: ChatInputProp
     }
   }
 
-  function handleInput() {
-    const el = ref.current
-    if (!el) return
-    el.style.height = "auto"
-    el.style.height = Math.min(el.scrollHeight, 96) + "px"
-  }
-
   return (
-    <div className="flex items-end gap-2 p-3 border-t border-border">
+    <div className="flex items-end gap-2 p-3 border-t border-border min-h-0">
       <textarea
-        ref={ref}
         value={value}
-        onChange={(e) => { onChange(e.target.value); handleInput() }}
+        onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="Describe your meme… e.g. 'drake meme about TypeScript errors'"
         disabled={disabled}
-        rows={1}
-        className="flex-1 resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50 min-h-9 max-h-24"
+        className="field-sizing-content min-h-11 max-h-24 w-full min-w-0 flex-1 resize-none overflow-y-auto rounded-lg border border-input bg-background px-3 py-2 text-sm leading-normal placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
       />
       <Button
         size="icon"

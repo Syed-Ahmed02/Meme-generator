@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(find C:UserssyedaOneDriveDesktopSyedDevmeme-generator/app -type f -name *.tsx -o -name *.ts -o -name *.jsx -o -name *.js)",
-      "Bash(find C:UserssyedaOneDriveDesktopSyedDevmeme-generator/components -type f -name *.tsx -o -name *.ts -o -name *.jsx -o -name *.js)"
+      "Bash(find C:UserssyedaOneDriveDesktopSyedDevmeme-generator/components -type f -name *.tsx -o -name *.ts -o -name *.jsx -o -name *.js)",
+      "Bash(bun add:*)",
+      "Bash(bunx --bun shadcn@latest add card input label slider select separator scroll-area tooltip badge skeleton tabs --yes)",
+      "Bash(node -e \"const pkg = require\\(''./node_modules/ai/package.json''\\); console.log\\(Object.keys\\(pkg.exports\\).join\\(''\\\\n''\\)\\)\")",
+      "Bash(node -e \"const r = require\\(''./node_modules/@ai-sdk/react''\\); console.log\\(Object.keys\\(r\\).filter\\(k => k.toLowerCase\\(\\).includes\\(''chat''\\) || k.toLowerCase\\(\\).includes\\(''use''\\)\\)\\)\")"
     ]
   }
 }
