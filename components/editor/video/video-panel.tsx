@@ -1,11 +1,24 @@
 "use client"
 
+import { useState } from "react"
 import { Film, Loader2, AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
 import { VideoResult } from "./video-result"
 import { useVideoGeneration } from "@/hooks/use-video-generation"
 import { useCanvasExport } from "@/hooks/use-canvas-export"
+import { cn } from "@/lib/utils"
 import type Konva from "konva"
+
+const DEFAULT_VIDEO_PROMPT =
+  "Subtle motion and parallax, keep the meme text sharp and readable, short playful energy"
+
+function moderationHint(errorText: string): string | null {
+  if (/sensitive|E005|flagged as sensitive/i.test(errorText)) {
+    return "The video provider blocked this run (often the image or prompt). Try a different template or meme image, use a neutral motion prompt (e.g. “slow zoom, soft lighting”), and avoid graphic or edgy source images."
+  }
+  return null
+}
 
 const STATUS_LABELS: Record<string, string> = {
   starting: "Starting up...",
@@ -22,12 +35,15 @@ interface VideoPanelProps {
 export function VideoPanel({ stageRef, imageLoaded }: VideoPanelProps) {
   const { job, isGenerating, error, generateVideo, reset } = useVideoGeneration()
   const { getDataUrl } = useCanvasExport(stageRef)
+  const [prompt, setPrompt] = useState(DEFAULT_VIDEO_PROMPT)
 
   async function handleGenerate() {
     const dataUrl = getDataUrl()
     if (!dataUrl) return
-    await generateVideo(dataUrl)
+    await generateVideo(dataUrl, { prompt: prompt.trim() || undefined })
   }
+
+  const sensitiveHint = error ? moderationHint(error) : null
 
   return (
     <div className="flex flex-col h-full p-3 space-y-4">
@@ -37,7 +53,31 @@ export function VideoPanel({ stageRef, imageLoaded }: VideoPanelProps) {
           <Film className="h-3.5 w-3.5" />
           Animate your meme
         </p>
-        <p>Turn your finished meme into a short looping video using AI. Make sure your text layers are set before generating.</p>
+        <p>
+          Turn your finished meme into a short video with MiniMax Hailuo 2.3 (via Replicate). Your canvas
+          is sent as the first frame; set text layers, then describe the motion below. Providers may block
+          some images or prompts automatically.
+        </p>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="video-prompt" className="text-xs text-muted-foreground font-normal">
+          Motion prompt
+        </Label>
+        <textarea
+          id="video-prompt"
+          rows={3}
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          disabled={isGenerating}
+          className={cn(
+            "w-full min-h-18 rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm",
+            "placeholder:text-muted-foreground outline-none transition-colors",
+            "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+            "disabled:pointer-events-none disabled:opacity-50 dark:bg-input/30"
+          )}
+          placeholder="Describe camera motion, mood, or effects..."
+        />
       </div>
 
       {/* Generate button */}
@@ -74,7 +114,7 @@ export function VideoPanel({ stageRef, imageLoaded }: VideoPanelProps) {
               }}
             />
           </div>
-          <p className="text-xs text-muted-foreground">This may take 30–90 seconds.</p>
+          <p className="text-xs text-muted-foreground">Rendering can take a few minutes. Keep this tab open.</p>
         </div>
       )}
 
@@ -83,8 +123,11 @@ export function VideoPanel({ stageRef, imageLoaded }: VideoPanelProps) {
         <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 space-y-2">
           <div className="flex items-center gap-2 text-sm text-destructive">
             <AlertCircle className="h-4 w-4 shrink-0" />
-            <span>{error}</span>
+            <span className="wrap-break-word">{error}</span>
           </div>
+          {sensitiveHint && (
+            <p className="text-xs text-muted-foreground leading-relaxed">{sensitiveHint}</p>
+          )}
           <Button variant="outline" size="sm" className="gap-1.5 h-7" onClick={reset}>
             <RefreshCw className="h-3 w-3" />
             Try again

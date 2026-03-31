@@ -16,54 +16,73 @@ export function useVideoGeneration() {
     }
   }
 
-  const generateVideo = useCallback(async (imageDataUrl: string) => {
-    setError(null)
-    setJob(null)
-    setIsGenerating(true)
-
-    try {
-      const res = await fetch("/api/video/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageDataUrl }),
-      })
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        throw new Error(data.error ?? "Failed to start video generation")
+  const generateVideo = useCallback(
+    async (
+      imageDataUrl: string,
+      options?: {
+        prompt?: string
+        duration?: number
+        resolution?: string
+        promptOptimizer?: boolean
       }
+    ) => {
+      setError(null)
+      setJob(null)
+      setIsGenerating(true)
 
-      const { predictionId } = data as { predictionId: string }
+      try {
+        const res = await fetch("/api/video/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            imageDataUrl,
+            prompt: options?.prompt,
+            duration: options?.duration,
+            resolution: options?.resolution,
+            promptOptimizer: options?.promptOptimizer,
+          }),
+        })
 
-      const initialJob: VideoJob = { id: predictionId, status: "starting" }
-      setJob(initialJob)
+        const data = await res.json()
 
-      // Poll for status
-      pollRef.current = setInterval(async () => {
-        try {
-          const statusRes = await fetch(`/api/video/status/${predictionId}`)
-          const statusData: VideoJob = await statusRes.json()
-          setJob(statusData)
+        if (!res.ok) {
+          throw new Error(data.error ?? "Failed to start video generation")
+        }
 
-          if (statusData.status === "succeeded" || statusData.status === "failed") {
+        const { predictionId } = data as { predictionId: string }
+
+        const initialJob: VideoJob = { id: predictionId, status: "starting" }
+        setJob(initialJob)
+
+        pollRef.current = setInterval(async () => {
+          try {
+            const statusRes = await fetch(`/api/video/status/${predictionId}`)
+            const statusData: VideoJob = await statusRes.json()
+            setJob(statusData)
+
+            if (statusData.status === "succeeded" || statusData.status === "failed") {
+              stopPolling()
+              setIsGenerating(false)
+              if (statusData.status === "failed") {
+                setError(
+                  statusData.errorMessage?.trim() ||
+                    "Video generation failed. Please try again."
+                )
+              }
+            }
+          } catch {
             stopPolling()
             setIsGenerating(false)
-            if (statusData.status === "failed") {
-              setError("Video generation failed. Please try again.")
-            }
+            setError("Failed to check video status.")
           }
-        } catch {
-          stopPolling()
-          setIsGenerating(false)
-          setError("Failed to check video status.")
-        }
-      }, 2000)
-    } catch (err) {
-      setIsGenerating(false)
-      setError(err instanceof Error ? err.message : "Unknown error")
-    }
-  }, [])
+        }, 2000)
+      } catch (err) {
+        setIsGenerating(false)
+        setError(err instanceof Error ? err.message : "Unknown error")
+      }
+    },
+    []
+  )
 
   function reset() {
     stopPolling()

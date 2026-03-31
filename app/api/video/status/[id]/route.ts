@@ -14,15 +14,32 @@ export async function GET(
   try {
     const prediction = await replicate.predictions.get(id)
 
+    const raw = prediction.output
+    let outputUrl: string | undefined
+    if (raw == null) {
+      outputUrl = undefined
+    } else if (Array.isArray(raw)) {
+      outputUrl = raw[0] as string
+    } else if (typeof raw === "string") {
+      outputUrl = raw
+    } else if (typeof raw === "object" && raw !== null && "url" in raw) {
+      const u = (raw as { url?: unknown }).url
+      outputUrl = typeof u === "string" ? u : undefined
+    }
+
+    const errRaw = prediction.error
+    const errorMessage =
+      errRaw != null && errRaw !== ""
+        ? typeof errRaw === "string"
+          ? errRaw
+          : JSON.stringify(errRaw)
+        : undefined
+
     const job: VideoJob = {
       id: prediction.id,
       status: prediction.status as VideoJob["status"],
-      outputUrl:
-        prediction.output && Array.isArray(prediction.output)
-          ? (prediction.output[0] as string)
-          : typeof prediction.output === "string"
-            ? prediction.output
-            : undefined,
+      outputUrl,
+      errorMessage,
     }
 
     return Response.json(job)

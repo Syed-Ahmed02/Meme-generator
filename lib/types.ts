@@ -31,4 +31,6 @@ export interface VideoJob {
   id: string
   status: "starting" | "processing" | "succeeded" | "failed"
   outputUrl?: string
+  /** Replicate / model error message when status is failed */
+  errorMessage?: string
 }
