@@ -2,12 +2,18 @@
 
 import { useState, useRef, useCallback } from "react"
 import type { VideoJob } from "@/lib/types"
+import { useMutation } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import { useEditorStore } from "./use-editor-store"
 
 export function useVideoGeneration() {
   const [job, setJob] = useState<VideoJob | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const { template } = useEditorStore()
+  const saveVideo = useMutation(api.videos.saveVideo)
+  const updateVideoStatus = useMutation(api.videos.updateVideoStatus)
 
   function stopPolling() {
     if (pollRef.current) {
@@ -54,6 +60,14 @@ export function useVideoGeneration() {
         const initialJob: VideoJob = { id: predictionId, status: "starting" }
         setJob(initialJob)
 
+        saveVideo({
+          templateId: template?.id ?? "unknown",
+          templateName: template?.name ?? "Unknown",
+          predictionId,
+          prompt: options?.prompt ?? "Animate this meme",
+          status: "starting",
+        }).catch(() => {/* not critical */})
+
         pollRef.current = setInterval(async () => {
           try {
             const statusRes = await fetch(`/api/video/status/${predictionId}`)
@@ -63,6 +77,12 @@ export function useVideoGeneration() {
             if (statusData.status === "succeeded" || statusData.status === "failed") {
               stopPolling()
               setIsGenerating(false)
+              updateVideoStatus({
+                predictionId,
+                status: statusData.status,
+                outputUrl: statusData.outputUrl,
+                errorMessage: statusData.errorMessage,
+              }).catch(() => {/* not critical */})
               if (statusData.status === "failed") {
                 setError(
                   statusData.errorMessage?.trim() ||
@@ -81,7 +101,7 @@ export function useVideoGeneration() {
         setError(err instanceof Error ? err.message : "Unknown error")
       }
     },
-    []
+    [template, saveVideo, updateVideoStatus]
   )
 
   function reset() {

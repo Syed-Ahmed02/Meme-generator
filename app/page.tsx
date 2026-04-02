@@ -4,6 +4,7 @@ import { MemeGallery } from "@/components/gallery/meme-gallery"
 import { MemeGallerySkeleton } from "@/components/gallery/meme-gallery-skeleton"
 import type { MemeTemplate } from "@/lib/types"
 import { FALLBACK_MEMES } from "@/lib/memes-fallback"
+import { AuthButtons } from "@/components/auth/auth-buttons"
 
 async function getMemes(): Promise<MemeTemplate[]> {
   try {
@@ -33,9 +34,12 @@ export default async function Page() {
             </div>
             <span className="font-bold text-lg tracking-tight">MemeForge</span>
           </div>
-          <p className="text-xs text-muted-foreground font-mono hidden sm:block">
-            Press <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border font-mono">d</kbd> to toggle dark mode
-          </p>
+          <div className="flex items-center gap-3">
+            <p className="text-xs text-muted-foreground font-mono hidden sm:block">
+              Press <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border font-mono">d</kbd> to toggle dark mode
+            </p>
+            <AuthButtons />
+          </div>
         </div>
       </header>
 

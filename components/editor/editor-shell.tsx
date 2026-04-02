@@ -14,6 +14,9 @@ import { useEditorStore } from "@/hooks/use-editor-store"
 import type { MemeTemplate, TextLayer } from "@/lib/types"
 import type Konva from "konva"
 import useImage from "use-image"
+import { useQuery, useMutation } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import { SignedIn, UserButton } from "@clerk/nextjs"
 
 // Dynamically import MemeCanvas so Konva never runs on the server
 const MemeCanvas = dynamic(
@@ -28,8 +31,14 @@ interface EditorShellProps {
 export function EditorShell({ template }: EditorShellProps) {
   const stageRef = useRef<Konva.Stage>(null)
   const [zoom, setZoom] = useState(1)
-  const { setTemplate, setLayers, selectedLayerId, deleteLayer, selectLayer } =
+  const { setTemplate, setLayers, selectedLayerId, deleteLayer, selectLayer, layers } =
     useEditorStore()
+
+  // Convex: load saved draft + auto-save
+  const savedDraft = useQuery(api.memes.getDraft, { templateId: template.id })
+  const upsertDraft = useMutation(api.memes.upsertDraft)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [draftReady, setDraftReady] = useState(false)
 
   // Check image loaded status for gating export
   const proxyUrl = `/api/proxy/image?url=${encodeURIComponent(template.url)}`
@@ -74,6 +83,29 @@ export function EditorShell({ template }: EditorShellProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [template.id])
 
+  // Mark draft query as resolved and restore saved layers
+  useEffect(() => {
+    if (savedDraft === undefined) return
+    setDraftReady(true)
+    if (savedDraft?.layers?.length) {
+      setLayers(savedDraft.layers as TextLayer[])
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedDraft])
+
+  // Auto-save layers (debounced 1.5s, only after draft query has resolved)
+  useEffect(() => {
+    if (!draftReady || !layers.length) return
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      upsertDraft({ templateId: template.id, templateName: template.name, layers })
+    }, 1500)
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layers, draftReady])
+
   // Keyboard shortcuts
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -111,8 +143,13 @@ export function EditorShell({ template }: EditorShellProps) {
         </Link>
         <div className="h-4 w-px bg-border" />
         <span className="text-sm font-semibold truncate">{template.name}</span>
-        <div className="ml-auto text-xs text-muted-foreground font-mono hidden sm:block">
-          {template.width} × {template.height}
+        <div className="ml-auto flex items-center gap-3">
+          <span className="text-xs text-muted-foreground font-mono hidden sm:block">
+            {template.width} × {template.height}
+          </span>
+          <SignedIn>
+            <UserButton afterSignOutUrl="/" />
+          </SignedIn>
         </div>
       </header>
 
