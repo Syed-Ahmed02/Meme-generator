@@ -16,7 +16,7 @@ import type Konva from "konva"
 import useImage from "use-image"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
-import { SignedIn, UserButton } from "@clerk/nextjs"
+import { Show, UserButton } from "@clerk/nextjs"
 
 // Dynamically import MemeCanvas so Konva never runs on the server
 const MemeCanvas = dynamic(
@@ -147,9 +147,9 @@ export function EditorShell({ template }: EditorShellProps) {
           <span className="text-xs text-muted-foreground font-mono hidden sm:block">
             {template.width} × {template.height}
           </span>
-          <SignedIn>
-            <UserButton afterSignOutUrl="/" />
-          </SignedIn>
+          <Show when="signed-in">
+            <UserButton />
+          </Show>
         </div>
       </header>
 
