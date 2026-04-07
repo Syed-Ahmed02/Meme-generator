@@ -17,6 +17,19 @@ export const layerValidator = v.object({
 })
 
 export default defineSchema({
+  meme_templates: defineTable({
+    tenorId: v.string(),
+    name: v.string(),
+    url: v.string(),
+    previewUrl: v.string(),
+    width: v.number(),
+    height: v.number(),
+    tags: v.array(v.string()),
+    fetchedAt: v.number(),
+  })
+    .index("by_tenor_id", ["tenorId"])
+    .index("by_fetched_at", ["fetchedAt"]),
+
   meme_drafts: defineTable({
     userId: v.string(),
     templateId: v.string(),

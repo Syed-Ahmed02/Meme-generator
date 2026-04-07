@@ -3,25 +3,27 @@ import { Laugh } from "lucide-react"
 import { MemeGallery } from "@/components/gallery/meme-gallery"
 import { MemeGallerySkeleton } from "@/components/gallery/meme-gallery-skeleton"
 import type { MemeTemplate } from "@/lib/types"
-import { FALLBACK_MEMES } from "@/lib/memes-fallback"
 import { AuthButtons } from "@/components/auth/auth-buttons"
 
-async function getMemes(): Promise<MemeTemplate[]> {
+async function getInitialMemes(): Promise<{
+  memes: MemeTemplate[]
+  nextCursor: string
+}> {
   try {
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/memes`,
-      { next: { revalidate: 3600 } }
+      { cache: "no-store" }
     )
     if (!res.ok) throw new Error()
     const data = await res.json()
-    return data.memes
+    return { memes: data.memes ?? [], nextCursor: data.nextCursor ?? "" }
   } catch {
-    return FALLBACK_MEMES
+    return { memes: [], nextCursor: "" }
   }
 }
 
 export default async function Page() {
-  const memes = await getMemes()
+  const { memes, nextCursor } = await getInitialMemes()
 
   return (
     <div className="min-h-screen bg-background">
@@ -57,7 +59,7 @@ export default async function Page() {
         </div>
 
         <Suspense fallback={<MemeGallerySkeleton />}>
-          <MemeGallery initialMemes={memes} />
+          <MemeGallery initialMemes={memes} initialNextCursor={nextCursor} />
         </Suspense>
       </div>
     </div>

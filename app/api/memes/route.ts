@@ -1,38 +1,106 @@
-import { FALLBACK_MEMES } from "@/lib/memes-fallback"
+import { ConvexHttpClient } from "convex/browser"
+import { api } from "@/convex/_generated/api"
 import type { MemeTemplate } from "@/lib/types"
 
-export async function GET() {
+interface TenorMediaFormat {
+  url: string
+  dims: [number, number]
+  size: number
+}
+
+interface TenorResult {
+  id: string
+  title: string
+  content_description: string
+  media_formats: {
+    gif?: TenorMediaFormat
+    tinygif?: TenorMediaFormat
+    mp4?: TenorMediaFormat
+  }
+  tags: string[]
+}
+
+interface TenorResponse {
+  results: TenorResult[]
+  next: string
+}
+
+function mapTenorResult(result: TenorResult): MemeTemplate & {
+  previewUrl: string
+  tags: string[]
+} {
+  const gif = result.media_formats.gif
+  const tinygif = result.media_formats.tinygif
+
+  const url = gif?.url ?? tinygif?.url ?? ""
+  const previewUrl = tinygif?.url ?? gif?.url ?? ""
+  const dims = gif?.dims ?? tinygif?.dims ?? [480, 480]
+
+  return {
+    id: result.id,
+    name: result.content_description || result.title || "Untitled",
+    url,
+    previewUrl,
+    width: dims[0],
+    height: dims[1],
+    boxCount: 2,
+    tags: result.tags ?? [],
+  }
+}
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const cursor = searchParams.get("cursor") ?? ""
+  const q = searchParams.get("q") ?? ""
+
+  const apiKey = process.env.TENOR_API_KEY
+  if (!apiKey) {
+    return Response.json({ memes: [], nextCursor: "" }, { status: 200 })
+  }
+
   try {
-    const res = await fetch("https://api.imgflip.com/get_memes", {
-      next: { revalidate: 3600 },
+    const params = new URLSearchParams({
+      key: apiKey,
+      limit: "20",
+      media_filter: "gif",
+      contentfilter: "medium",
     })
-    if (!res.ok) throw new Error("Imgflip API error")
+    if (cursor) params.set("pos", cursor)
 
-    const data = await res.json()
-    const memes: MemeTemplate[] = data.data.memes.map((m: {
-      id: string
-      name: string
-      url: string
-      width: number
-      height: number
-      box_count: number
-    }) => ({
-      id: m.id,
-      name: m.name,
-      url: m.url,
-      width: m.width,
-      height: m.height,
-      boxCount: m.box_count,
-    }))
+    let tenorUrl: string
+    if (q.trim()) {
+      params.set("q", q.trim())
+      tenorUrl = `https://tenor.googleapis.com/v2/search?${params}`
+    } else {
+      tenorUrl = `https://tenor.googleapis.com/v2/featured?${params}`
+    }
 
-    return Response.json(
-      { memes },
-      { headers: { "Cache-Control": "public, max-age=3600" } }
-    )
-  } catch {
-    return Response.json(
-      { memes: FALLBACK_MEMES },
-      { headers: { "Cache-Control": "public, max-age=300" } }
-    )
+    const res = await fetch(tenorUrl)
+    if (!res.ok) throw new Error(`Tenor API error: ${res.status}`)
+
+    const data: TenorResponse = await res.json()
+    const memes = data.results.map(mapTenorResult)
+
+    // Cache new templates in Convex
+    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
+    if (convexUrl && memes.length > 0) {
+      const convex = new ConvexHttpClient(convexUrl)
+      await convex.mutation(api.templates.upsertMemeTemplates, {
+        templates: memes.map((m) => ({
+          tenorId: m.id,
+          name: m.name,
+          url: m.url,
+          previewUrl: m.previewUrl,
+          width: m.width,
+          height: m.height,
+          tags: m.tags,
+        })),
+      })
+    }
+
+    return Response.json({ memes, nextCursor: data.next ?? "" })
+  } catch (err) {
+    console.error("Tenor API fetch failed:", err)
+    return Response.json({ memes: [], nextCursor: "" })
   }
 }

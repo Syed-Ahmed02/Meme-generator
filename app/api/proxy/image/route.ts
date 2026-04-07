@@ -1,3 +1,5 @@
+const ALLOWED_HOSTS = ["i.imgflip.com", "media.tenor.com", "c.tenor.com"]
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const url = searchParams.get("url")
@@ -6,7 +8,6 @@ export async function GET(request: Request) {
     return new Response("Missing url parameter", { status: 400 })
   }
 
-  // SSRF protection: only allow i.imgflip.com
   let parsedUrl: URL
   try {
     parsedUrl = new URL(url)
@@ -14,8 +15,11 @@ export async function GET(request: Request) {
     return new Response("Invalid URL", { status: 400 })
   }
 
-  if (parsedUrl.hostname !== "i.imgflip.com") {
-    return new Response("Only i.imgflip.com is allowed", { status: 403 })
+  if (!ALLOWED_HOSTS.includes(parsedUrl.hostname)) {
+    return new Response(
+      `Only ${ALLOWED_HOSTS.join(", ")} are allowed`,
+      { status: 403 }
+    )
   }
 
   try {
@@ -24,7 +28,7 @@ export async function GET(request: Request) {
       return new Response("Failed to fetch image", { status: imageRes.status })
     }
 
-    const contentType = imageRes.headers.get("content-type") ?? "image/jpeg"
+    const contentType = imageRes.headers.get("content-type") ?? "image/gif"
     const buffer = await imageRes.arrayBuffer()
 
     return new Response(buffer, {
