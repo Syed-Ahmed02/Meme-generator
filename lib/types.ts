@@ -5,6 +5,8 @@ export interface MemeTemplate {
   width: number
   height: number
   boxCount: number
+  previewUrl?: string
+  tags?: string[]
 }
 
 export interface TextLayer {
