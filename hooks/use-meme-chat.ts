@@ -52,7 +52,7 @@ export function useMemeChat(initialSessionId: string | null) {
   // Sync persisted messages into local state on mount / session switch
   useEffect(() => {
     if (!persistedMessages) return
-    const mapped: MemeChatMessage[] = persistedMessages.map((m) => ({
+    const mapped: MemeChatMessage[] = persistedMessages.map((m: typeof persistedMessages[number]) => ({
       _id: m._id,
       sessionId: m.sessionId,
       role: m.role,

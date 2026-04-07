@@ -9,6 +9,7 @@
  */
 
 import type * as chat from "../chat.js";
+import type * as memeChat from "../memeChat.js";
 import type * as memes from "../memes.js";
 import type * as videos from "../videos.js";
 
@@ -20,6 +21,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   chat: typeof chat;
+  memeChat: typeof memeChat;
   memes: typeof memes;
   videos: typeof videos;
 }>;
