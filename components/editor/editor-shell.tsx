@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import dynamic from "next/dynamic"
 import { nanoid } from "nanoid"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { CanvasToolbar } from "./canvas/canvas-toolbar"
 import { EditorSidebar } from "./sidebar/editor-sidebar"
@@ -33,6 +34,9 @@ export function EditorShell({ template }: EditorShellProps) {
   const [zoom, setZoom] = useState(1)
   const { setTemplate, setLayers, selectedLayerId, deleteLayer, selectLayer, layers } =
     useEditorStore()
+  const searchParams = useSearchParams()
+  const urlTopText = searchParams.get("topText")
+  const urlBottomText = searchParams.get("bottomText")
 
   // Convex: load saved draft + auto-save
   const savedDraft = useQuery(api.memes.getDraft, { templateId: template.id })
@@ -52,7 +56,7 @@ export function EditorShell({ template }: EditorShellProps) {
     const defaultLayers: TextLayer[] = [
       {
         id: nanoid(),
-        text: "TOP TEXT",
+        text: urlTopText ?? "TOP TEXT",
         x: template.width * 0.05,
         y: template.height * 0.04,
         width: template.width * 0.9,
@@ -66,7 +70,7 @@ export function EditorShell({ template }: EditorShellProps) {
       },
       {
         id: nanoid(),
-        text: "BOTTOM TEXT",
+        text: urlBottomText ?? "BOTTOM TEXT",
         x: template.width * 0.05,
         y: template.height * 0.84,
         width: template.width * 0.9,
