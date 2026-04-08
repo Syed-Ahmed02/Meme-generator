@@ -48,6 +48,33 @@ export default defineSchema({
     createdAt: v.number(),
   }).index("by_draft", ["draftId"]),
 
+  meme_chat_sessions: defineTable({
+    userId: v.string(),
+    title: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
+
+  meme_chat_messages: defineTable({
+    sessionId: v.id("meme_chat_sessions"),
+    userId: v.string(),
+    role: v.union(v.literal("user"), v.literal("assistant")),
+    content: v.string(),
+    imageDescription: v.optional(v.string()),
+    memeResult: v.optional(
+      v.object({
+        templateId: v.string(),
+        templateName: v.string(),
+        templateUrl: v.string(),
+        templateWidth: v.number(),
+        templateHeight: v.number(),
+        topText: v.string(),
+        bottomText: v.string(),
+      })
+    ),
+    createdAt: v.number(),
+  }).index("by_session", ["sessionId"]),
+
   video_history: defineTable({
     userId: v.string(),
     templateId: v.string(),

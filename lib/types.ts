@@ -29,6 +29,26 @@ export interface ChatMessage {
   content: string
 }
 
+export interface MemeResult {
+  templateId: string
+  templateName: string
+  templateUrl: string
+  templateWidth: number
+  templateHeight: number
+  topText: string
+  bottomText: string
+}
+
+export interface MemeChatMessage {
+  _id: string
+  sessionId: string
+  role: "user" | "assistant"
+  content: string
+  imageDescription?: string
+  memeResult?: MemeResult
+  createdAt: number
+}
+
 export interface VideoJob {
   id: string
   status: "starting" | "processing" | "succeeded" | "failed"

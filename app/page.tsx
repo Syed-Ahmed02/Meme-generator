@@ -1,5 +1,6 @@
 import { Suspense } from "react"
-import { Laugh } from "lucide-react"
+import { Laugh, MessageSquare } from "lucide-react"
+import Link from "next/link"
 import { MemeGallery } from "@/components/gallery/meme-gallery"
 import { MemeGallerySkeleton } from "@/components/gallery/meme-gallery-skeleton"
 import type { MemeTemplate } from "@/lib/types"
@@ -40,6 +41,12 @@ export default async function Page() {
             <p className="text-xs text-muted-foreground font-mono hidden sm:block">
               Press <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border font-mono">d</kbd> to toggle dark mode
             </p>
+            <Link href="/chat">
+              <button className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-xs font-medium shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors">
+                <MessageSquare className="h-3.5 w-3.5" />
+                Meme Chat
+              </button>
+            </Link>
             <AuthButtons />
           </div>
         </div>

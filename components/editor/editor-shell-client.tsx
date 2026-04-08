@@ -1,5 +1,6 @@
 "use client"
 
+import { Suspense } from "react"
 import dynamic from "next/dynamic"
 import type { MemeTemplate } from "@/lib/types"
 
@@ -9,5 +10,9 @@ const EditorShell = dynamic(
 )
 
 export function EditorShellClient({ template }: { template: MemeTemplate }) {
-  return <EditorShell template={template} />
+  return (
+    <Suspense>
+      <EditorShell template={template} />
+    </Suspense>
+  )
 }
